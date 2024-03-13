@@ -1,0 +1,58 @@
+from scapy.all import *
+import argparse
+
+def packet_callback(packet):
+    try:
+        if ARP in packet:
+            src_mac = packet[ARP].hwsrc
+            src_ip = packet[ARP].psrc
+            dst_mac = packet[ARP].hwdst
+            dst_ip = packet[ARP].pdst
+            print(f"ARP Packet: {src_mac} ({src_ip}) -> {dst_mac} ({dst_ip})")
+
+        elif IP in packet:
+            src_ip = packet[IP].src
+            dst_ip = packet[IP].dst
+            protocol = packet[IP].proto
+            print(f"IP Packet: {src_ip} -> {dst_ip} Protocol: {protocol}")
+
+            if TCP in packet:
+                src_port = packet[TCP].sport
+                dst_port = packet[TCP].dport
+                print(f"TCP Segment: {src_ip}:{src_port} -> {dst_ip}:{dst_port}")
+
+            elif UDP in packet:
+                src_port = packet[UDP].sport
+                dst_port = packet[UDP].dport
+                print(f"UDP Datagram: {src_ip}:{src_port} -> {dst_ip}:{dst_port}")
+
+    except Exception as e:
+        print(f"Error processing packet: {e}")
+
+def main():
+    parser = argparse.ArgumentParser(description="Network Sniffer")
+    parser.add_argument("-i", "--interface", help="Specify the network interface (e.g., eth0, wlan0)")
+    parser.add_argument("-f", "--filter", help="Specify BPF filter expression (e.g., 'tcp port 80')")
+    parser.add_argument("-o", "--output", help="Specify the output file name to save captured packets")
+
+    args = parser.parse_args()
+
+    if args.interface:
+        iface = args.interface
+    else:
+        iface = conf.iface  # Use default interface
+
+    if args.filter:
+        filter_expr = args.filter
+    else:
+        filter_expr = ""
+
+    if args.output:
+        output_file = args.output
+    else:
+        output_file = None
+
+    sniff(iface=iface, prn=packet_callback, filter=filter_expr, store=0, offline=output_file)
+
+if __name__ == "__main__":
+    main()
